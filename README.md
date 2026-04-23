@@ -23,21 +23,52 @@ The Wazuh dashboard was accessed entirely from a Windows host machine through a 
 ![Architecture Diagram](screenshots/architecture.png)
 
 ```
-AWS Cloud (us-east-1)
-├── Wazuh Server EC2        Ubuntu 22.04 — t2.large — 44.196.48.54
-│   ├── Wazuh Manager       Rule engine and alert processing
-│   ├── Wazuh Indexer       OpenSearch-based alert storage
-│   └── Wazuh Dashboard     Accessed via browser at https://44.196.48.54
-├── EC2 Linux Agent         Ubuntu 22.04 — t2.micro — 10.0.7.95
-├── EC2 Windows Agent       Windows Server 2022 — t2.medium — 10.0.4.196
-├── Attacker EC2            Ubuntu 22.04 — attack simulation inside VPC
-├── CloudTrail              API audit logs → S3 → Wazuh AWS module
-├── GuardDuty               ML-based threat detection — enabled
-└── VPC Flow Logs           Network traffic metadata → CloudWatch
-
-On-Premise
-└── windows-endpoint        Windows 11 Pro — 192.168.0.200
-                            Wazuh agent connecting outbound to 44.196.48.54
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         AWS CLOUD — us-east-1                                │
+│                     VPC: wazuh-soc-vpc  (10.0.0.0/16)                       │
+│                                                                               │
+│  ┌───────────────────┐  ┌──────────────────┐  ┌───────────────────────┐    │
+│  │   Wazuh Server    │  │  EC2 Linux Agent  │  │  EC2 Windows Agent    │    │
+│  │   Ubuntu 22.04    │  │  Ubuntu 22.04     │  │  Windows Server 2022  │    │
+│  │   t2.large        │  │  t2.micro         │  │  t2.medium            │    │
+│  │   44.196.48.54    │  │  10.0.7.95        │  │  10.0.4.196           │    │
+│  │                   │  │  Wazuh Agent      │  │  Wazuh Agent          │    │
+│  │  Manager          │  └────────┬──────────┘  └──────────┬────────────┘    │
+│  │  Indexer          │           │   reports logs          │                 │
+│  │  Dashboard ───────│───────────┘─────────────────────────┘                │
+│  └───────────────────┘                                                       │
+│           ▲                                                                   │
+│           │                                                                   │
+│  ┌────────┴─────────────────────────────────────────────┐                   │
+│  │              AWS Native Security Services             │                   │
+│  │  CloudTrail → S3 Bucket → Wazuh AWS Module           │                   │
+│  │  GuardDuty  → Threat Detection                       │                   │
+│  │  VPC Flow Logs → CloudWatch                          │                   │
+│  └──────────────────────────────────────────────────────┘                   │
+│                                                                               │
+│  ┌───────────────────┐                                                       │
+│  │   Attacker EC2    │ ─── brute force ──▶ EC2 Linux / EC2 Windows          │
+│  │   Ubuntu 22.04    │                                                       │
+│  │   Hydra · Nmap    │                                                       │
+│  └───────────────────┘                                                       │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                    │
+                    agents report outbound over internet
+                    dashboard accessed via browser (https://44.196.48.54)
+                    server managed via SSH from Windows host
+                                    │
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           On-Premise                                          │
+│                                                                               │
+│  ┌──────────────────────────────────────────────────────────────────────┐   │
+│  │  Windows Host — 192.168.0.200                                         │   │
+│  │                                                                        │   │
+│  │  Role 1: Wazuh agent (windows-endpoint) → reports to 44.196.48.54    │   │
+│  │  Role 2: SSH client  → manages Wazuh EC2 server                      │   │
+│  │  Role 3: Browser     → accesses Wazuh dashboard at https://44.196.48.54│  │
+│  └──────────────────────────────────────────────────────────────────────┘   │
+│                   ZedMobile ISP — CGNAT — no inbound port forwarding         │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 **How access worked:** The Windows host machine served three roles simultaneously — it ran the Wazuh on-premise agent, it was used to SSH into the Wazuh EC2 server for configuration and management, and it was used to open the Wazuh dashboard in a browser at `https://44.196.48.54`. Everything was managed remotely from one Windows machine.
