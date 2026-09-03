@@ -20,8 +20,6 @@ The Wazuh dashboard was accessed entirely from a Windows host machine through a 
 
 ## Architecture
 
-![Architecture Diagram](screenshots/architecture.png)
-
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                         AWS CLOUD — us-east-1                                │
@@ -74,11 +72,6 @@ The Wazuh dashboard was accessed entirely from a Windows host machine through a 
 **How access worked:** The Windows host machine served three roles simultaneously — it ran the Wazuh on-premise agent, it was used to SSH into the Wazuh EC2 server for configuration and management, and it was used to open the Wazuh dashboard in a browser at `https://44.196.48.54`. Everything was managed remotely from one Windows machine.
 
 ---
-
-## Lab Setup
-
-![Agents List](screenshots/wazuh-agents-list.png)
-> Three active agents reporting to the cloud Wazuh server — EC2 Linux, EC2 Windows Server 2022 Datacenter, and on-premise Windows 11 Pro. All running Wazuh v4.7.5.
 
 ![CloudTrail Active](screenshots/cloudtrail-active.png)
 > CloudTrail trail active with event history already populating — CreateFlowLogs and CreateLogGroup events captured, confirming the AWS API audit pipeline is flowing into the monitoring environment.
